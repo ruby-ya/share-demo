@@ -1,21 +1,33 @@
 package com.example.demo
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -29,12 +41,12 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.max
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         val intent = intent
         if (Intent.ACTION_SEND == intent.action && intent.type?.startsWith("image/") == true) {
             val imageUri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
@@ -50,8 +62,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == SHARE_REQUEST_CODE) {
+            // 分享成功，根据需要处理逻辑，比如finish当前Activity
+            finish()
+        }
+    }
 }
+
+const val SHARE_REQUEST_CODE = 99 // 定义一个分享成功请求码
 
 @Composable
 fun AlertDialogContent() {
@@ -132,26 +152,55 @@ fun ShareImageScreen(imageUri: Uri) {
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    bitmap?.let { bmp ->
-                        val gifFile = convertBitmapToGif(context, bmp, fileName)
-                        shareGif(context, gifFile)
+                    if (imageUri.path?.endsWith(".gif") == true) {
+                        shareGifDirectly(context, imageUri)
+                    } else {
+                        bitmap?.let { bmp ->
+                            val gifFile = convertBitmapToGif(context, bmp, fileName)
+                            shareGifConverted(context, gifFile)
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "转为GIF并分享")
+                Text(text = "确定以表情包分享吗?")
             }
         }
     }
 }
 
-fun convertBitmapToGif(context: android.content.Context, bitmap: Bitmap, fileName: String): File {
+fun convertBitmapToGif(
+    context: Context,
+    bitmap: Bitmap,
+    fileName: String,
+    maxSize: Int = 1000
+): File {
     val filePrefix = if (fileName.lastIndexOf(".") > 0) {
         fileName.substring(0, fileName.lastIndexOf("."))
     } else fileName
     val file = File(context.cacheDir, "${filePrefix}.gif")
+
+    // 计算新的尺寸，保持宽高比 maxSize=1000
+    val useScale = max(bitmap.width, bitmap.height) > maxSize
+    val scaleFactor = if (bitmap.width > bitmap.height) {
+        maxSize.toFloat() / bitmap.width
+    } else {
+        maxSize.toFloat() / bitmap.height
+    }
+    val newWidth = if (useScale) (bitmap.width * scaleFactor).toInt() else bitmap.width
+    val newHeight =
+        if (useScale) (bitmap.height * scaleFactor).toInt() else bitmap.height
+
+    // 调整Bitmap尺寸
+    val resizedBitmap = if (useScale) Bitmap.createScaledBitmap(
+        bitmap,
+        newWidth,
+        newHeight,
+        true
+    ) else bitmap
+
     ByteArrayOutputStream().use { byteArrayOutputStream ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
         FileOutputStream(file).use { fileOutputStream ->
             fileOutputStream.write(byteArrayOutputStream.toByteArray())
         }
@@ -159,13 +208,21 @@ fun convertBitmapToGif(context: android.content.Context, bitmap: Bitmap, fileNam
     return file
 }
 
-fun shareGif(context: android.content.Context, gifFile: File) {
+fun shareGifConverted(context: Context, gifFile: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", gifFile)
-    val shareIntent: Intent = Intent().apply {
+    shareGifDirectly(context, uri)
+}
+
+fun shareGifDirectly(context: Context, gifUri: Uri) {
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
         action = Intent.ACTION_SEND
-        putExtra(Intent.EXTRA_STREAM, uri)
         type = "image/gif"
+        putExtra(Intent.EXTRA_STREAM, gifUri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(shareIntent, "分享GIF"))
+    // context.startActivity(Intent.createChooser(shareIntent, "分享表情包"))
+    (context as Activity).startActivityForResult(
+        Intent.createChooser(shareIntent, "分享表情包"),
+        SHARE_REQUEST_CODE
+    )
 }
