@@ -11,7 +11,8 @@
 ![](./resources/image3.png)
 
 ## 使用方式
+![](./resources/video1.mp4)
+[飞书文档-使用方式](https://p9woebxt2a.feishu.cn/docx/S1FedPEJZoB4qxxSURkczGuhnBg)
 
-<iframe width="560" height="315" src="./resources/video1.mp4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
