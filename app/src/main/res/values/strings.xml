@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">分享表情包</string>
+    <string name="app_name">ShareDemo</string>
+    <string name="share_activity_name">表情包分享</string>
 </resources>
