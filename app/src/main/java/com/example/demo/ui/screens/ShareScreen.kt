@@ -282,7 +282,7 @@ fun ShareImageScreen(
                         title = "最大尺寸",
                         value = maxSize.toFloat(),
                         onValueChange = { maxSize = it.toInt() },
-                        valueRange = 256f..2048f,
+                        valueRange = 10f..1024f,
                         icon = CustomIcons.PhotoSizeSelectLarge,
                         suffix = "px",
                         description = "调整图片的最大边长"
@@ -293,7 +293,7 @@ fun ShareImageScreen(
                         title = "压缩质量",
                         value = quality.toFloat(),
                         onValueChange = { quality = it.toInt() },
-                        valueRange = 20f..100f,
+                        valueRange = 1f..100f,
                         icon = CustomIcons.CompressedSize,
                         suffix = "%",
                         description = "降低质量可以减小文件大小"
