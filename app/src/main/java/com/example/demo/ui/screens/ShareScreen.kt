@@ -2,6 +2,7 @@ package com.example.demo.ui.screens
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.compose.foundation.Image
@@ -13,9 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Preview
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -31,17 +33,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
+import com.example.demo.ui.icons.CustomIcons
+import com.example.demo.utils.formatFileSize
+import com.example.demo.utils.generatePreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
-import kotlinx.coroutines.CoroutineScope
-import androidx.compose.runtime.rememberCoroutineScope
-import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
-import com.bumptech.glide.integration.compose.GlideImage
-import com.example.demo.ui.icons.CustomIcons
-import com.example.demo.utils.generatePreview
-import com.example.demo.utils.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalGlideComposeApi::class,
     ExperimentalGlideComposeApi::class
@@ -237,7 +240,16 @@ fun ShareImageScreen(
                         .fillMaxSize()
                         .padding(8.dp),
                     contentScale = ContentScale.Fit
-                )
+                ) {
+                    it.apply {
+                        downsample(DownsampleStrategy.CENTER_INSIDE)
+                        override(imageWidth, imageHeight)
+                        transform(CenterCrop())
+                        diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        placeholder(ColorDrawable(Color.Gray.toArgb()))
+                        error(ColorDrawable(Color.Red.toArgb()))
+                    }
+                }
             }
 
             // 图片信息卡片
@@ -400,7 +412,16 @@ fun ShareImageScreen(
                                     .height(150.dp)
                                     .padding(8.dp),
                                 contentScale = ContentScale.Fit
-                            )
+                            ) {
+                                it.apply {
+                                    downsample(DownsampleStrategy.CENTER_INSIDE)
+                                    override(imageWidth, imageHeight)
+                                    transform(CenterCrop())
+                                    diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                                    placeholder(ColorDrawable(Color.Gray.toArgb()))
+                                    error(ColorDrawable(Color.Red.toArgb()))
+                                }
+                            }
                             Text(formatFileSize(fileSize))
                         }
                         

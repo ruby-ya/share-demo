@@ -124,6 +124,15 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0"
 
+
     // 日期时间格式化
     implementation "org.jetbrains.kotlinx:kotlinx-datetime:0.5.0"
+
+    // FFmpeg for GIF processing
+    implementation 'com.arthenica:ffmpeg-kit-full:6.0-2'
+    
+    // Glide for GIF display
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'com.github.bumptech.glide:compose:1.0.0-beta01'
+    kapt 'com.github.bumptech.glide:compiler:4.16.0'
 } 
