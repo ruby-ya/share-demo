@@ -1,11 +1,9 @@
-package com.example.demo.viewmodel
+package com.example.demo.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.demo.data.EmoticonItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 class HomeViewModel() : ViewModel() {
     private val _hotEmoticons = MutableStateFlow<List<EmoticonItem>>(emptyList())

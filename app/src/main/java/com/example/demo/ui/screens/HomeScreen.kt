@@ -18,9 +18,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.demo.R
-import com.example.demo.data.EmoticonItem
 import com.example.demo.data.EmoticonCategory
-import com.example.demo.viewmodel.HomeViewModel
+import com.example.demo.data.EmoticonItem
+import com.example.demo.ui.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel) {

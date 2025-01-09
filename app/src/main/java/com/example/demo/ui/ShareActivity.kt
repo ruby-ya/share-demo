@@ -1,4 +1,4 @@
-package com.example.demo
+package com.example.demo.ui
 
 import android.app.Activity
 import android.content.Context
@@ -15,32 +15,36 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
-import com.bumptech.glide.load.resource.gif.GifDrawable
 import com.example.demo.data.HistoryItem
 import com.example.demo.ui.screens.ShareImageScreen
-import com.example.demo.viewmodel.HistoryViewModel
+import com.example.demo.ui.viewmodel.HistoryViewModel
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Date
 import kotlin.math.max
+import kotlinx.datetime.Clock
+import java.util.Date
 
 class ShareActivity : ComponentActivity() {
     private var currentImageUri: Uri? = null
     private val historyViewModel: HistoryViewModel by viewModels()
+    private var isProcessing by mutableStateOf(false)
 
     companion object {
         private const val PICK_IMAGE_REQUEST = 1001
         const val SHARE_REQUEST_CODE = 99
         private const val PERMISSION_REQUEST_CODE = 100
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -55,7 +59,8 @@ class ShareActivity : ComponentActivity() {
                         onShare = { quality, maxSize, compressionLevel ->
                             handleShare(imageUri, quality, maxSize, compressionLevel)
                         },
-                        onNavigateUp = { finish() }
+                        onNavigateUp = { finish() },
+                        isProcessing = isProcessing
                     )
                 }
             }
@@ -73,12 +78,13 @@ class ShareActivity : ComponentActivity() {
     }
 
     private fun handleShare(imageUri: Uri, quality: Int, maxSize: Int, compressionLevel: Int) {
+        isProcessing = true
         val context = this
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // 获取原始图片信息
-                val originalSize = context.contentResolver.openInputStream(imageUri)?.use { 
-                    it.available().toLong() 
+                val originalSize = context.contentResolver.openInputStream(imageUri)?.use {
+                    it.available().toLong()
                 } ?: 0L
 
                 // 检查是否是 GIF
@@ -119,6 +125,7 @@ class ShareActivity : ComponentActivity() {
 
                     withContext(Dispatchers.Main) {
                         shareImage(compressedUri, "image/gif")
+                        isProcessing = false
                     }
                 } else {
                     // 非 GIF 格式压缩为 JPG
@@ -154,6 +161,7 @@ class ShareActivity : ComponentActivity() {
 
                     withContext(Dispatchers.Main) {
                         shareImage(compressedUri, "image/jpeg")
+                        isProcessing = false
                     }
 
                     compressedBitmap.recycle()
@@ -162,6 +170,7 @@ class ShareActivity : ComponentActivity() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "处理图片失败", Toast.LENGTH_SHORT).show()
+                    isProcessing = false
                 }
             }
         }
@@ -211,7 +220,7 @@ class ShareActivity : ComponentActivity() {
                         fileSize = originalSize,
                         width = options.outWidth,
                         height = options.outHeight,
-                        timestamp = Date(),
+                        timestamp = Date(Clock.System.now().epochSeconds),
                         compressedSize = compressedSize
                     )
 
@@ -274,7 +283,8 @@ class ShareActivity : ComponentActivity() {
                                 onShare = { quality, maxSize, compressionLevel ->
                                     handleShare(resultUri, quality, maxSize, compressionLevel)
                                 },
-                                onNavigateUp = { finish() }
+                                onNavigateUp = { finish() },
+                                isProcessing = isProcessing
                             )
                         }
                     }
@@ -288,7 +298,7 @@ class ShareActivity : ComponentActivity() {
 
     private fun startCrop(uri: Uri) {
         val destinationUri = Uri.fromFile(File(cacheDir, "cropped_${System.currentTimeMillis()}.gif"))
-        
+
         UCrop.of(uri, destinationUri)
             .withAspectRatio(1f, 1f)
             .withMaxResultSize(1024, 1024)
@@ -326,7 +336,7 @@ class ShareActivity : ComponentActivity() {
         try {
             // 创建临时输入文件
             val tempInputFile = File(context.cacheDir, "temp_input_${System.currentTimeMillis()}.gif")
-            
+
             // 复制原始文件到临时文件
             context.contentResolver.openInputStream(originalUri)?.use { input ->
                 tempInputFile.outputStream().use { output ->
@@ -370,7 +380,7 @@ class ShareActivity : ComponentActivity() {
 
             // 执行 FFmpeg 命令
             val session = FFmpegKit.execute(command.joinToString(" "))
-            
+
             if (ReturnCode.isSuccess(session.returnCode)) {
                 // 验证输出文件
                 if (!outputFile.exists() || outputFile.length() == 0L) {
@@ -384,7 +394,7 @@ class ShareActivity : ComponentActivity() {
                     "-vf", "scale=$width:$height:force_original_aspect_ratio=decrease,fps=$fps",
                     outputFile.absolutePath
                 )
-                
+
                 val fallbackSession = FFmpegKit.execute(fallbackCommand.joinToString(" "))
                 if (!ReturnCode.isSuccess(fallbackSession.returnCode)) {
                     throw Exception("FFmpeg execution failed: ${session.failStackTrace}")
@@ -460,16 +470,16 @@ class ShareActivity : ComponentActivity() {
             val scaleRatio = if (maxOf(width, height) > maxSize) {
                 maxSize.toFloat() / maxOf(width, height)
             } else 1f
-            
+
             // 考虑帧率和颜色数量的影响
             val qualityFactor = (quality / 100f).let { q ->
                 // 非线性映射，低质量时压缩更aggressive
                 0.3f + (0.7f * q * q)
             }
-            
+
             val sizeFactor = scaleRatio * scaleRatio
             val frameRateFactor = 0.8f  // 考虑帧率限制的影响
-            
+
             return (originalSize * sizeFactor * qualityFactor * frameRateFactor).toLong()
         }
     }
